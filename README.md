@@ -80,5 +80,29 @@ O sistema permite:
 | RN11 | As mudanças de status seguem apenas as transições permitidas. |
 | RN12 | Produtos inativos não podem ser adicionados a novos pedidos. |
 
+## Entidades
+
+| Entidade | Atributos |
+|---|---|
+| `categoria` | `id` (PK), `nome` (UK), `descricao`, `ativa` |
+| `produto` | `id` (PK), `categoria_id` (FK), `nome`, `descricao`, `preco_atual`, `ativo`, `criado_em`, `atualizado_em` |
+| `caracteristica_produto` | `id` (PK), `produto_id` (FK), `nome`, `valor` |
+| `estoque` | `produto_id` (PK e FK), `quantidade_disponivel` (≥ 0), `atualizado_em` |
+| `movimentacao_estoque` | `id` (PK), `produto_id` (FK), `pedido_id` (FK), `tipo`, `quantidade`, `data_hora`, `observacao` |
+| `cliente` | `id` (PK), `nome`, `email` (UK), `cpf` (UK), `telefone`, `ativo`, `criado_em` |
+| `endereco` | `id` (PK), `cliente_id` (FK), `rotulo`, `destinatario`, `cep`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `principal`, `ativo` |
+| `pedido` | `id` (PK), `cliente_id` (FK), `endereco_id` (FK), `status`, `data_pedido`, `data_confirmacao`, `data_envio`, `data_entrega`, `data_cancelamento`, `motivo_cancelamento`, `valor_total`, `entrega_destinatario`, `entrega_cep`, `entrega_numero`, `entrega_complemento`, `entrega_bairro`, `entrega_cidade`, `entrega_estado` |
+| `item_pedido` | `id` (PK), `pedido_id` (FK), `produto_id` (FK), `quantidade`, `preco_unitario` |
+| `historico_status_pedido` | `id` (PK), `pedido_id` (FK), `status_anterior`, `status_novo`, `data_hora`, `observacao` |
+ 
+**Restrições:**
+ 
+- `item_pedido`: `UNIQUE (pedido_id, produto_id)` e `CHECK (quantidade > 0)`.
+- `estoque`: `(quantidade_disponivel >= 0)`.
+- `produto`: `(preco_atual >= 0)`.
+- `pedido.status` e `movimentacao_estoque.tipo` aceitam apenas os valores definidos nos enums.
+- `pedido.endereco_id` é só uma referência ao cadastro; os dados de entrega de fato ficam nas colunas `entrega_*`.
+
+
 
 
