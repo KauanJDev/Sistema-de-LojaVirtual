@@ -90,7 +90,7 @@ O sistema permite:
 | `estoque` | `produto_id` (PK e FK), `quantidade_disponivel` (≥ 0), `atualizado_em` |
 | `movimentacao_estoque` | `id` (PK), `produto_id` (FK), `pedido_id` (FK), `tipo`, `quantidade`, `data_hora`, `observacao` |
 | `cliente` | `id` (PK), `nome`, `email` (UK), `cpf` (UK), `telefone`, `ativo`, `criado_em` |
-| `endereco` | `id` (PK), `cliente_id` (FK), `rotulo`, `destinatario`, `cep`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `principal`, `ativo` |
+| `endereco` | `id` (PK), `cliente_id` (FK), `destinatario`, `cep`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `principal`, `ativo` |
 | `pedido` | `id` (PK), `cliente_id` (FK), `endereco_id` (FK), `status`, `data_pedido`, `data_confirmacao`, `data_envio`, `data_entrega`, `data_cancelamento`, `motivo_cancelamento`, `valor_total`, `entrega_destinatario`, `entrega_cep`, `entrega_numero`, `entrega_complemento`, `entrega_bairro`, `entrega_cidade`, `entrega_estado` |
 | `item_pedido` | `id` (PK), `pedido_id` (FK), `produto_id` (FK), `quantidade`, `preco_unitario` |
 | `historico_status_pedido` | `id` (PK), `pedido_id` (FK), `status_anterior`, `status_novo`, `data_hora`, `observacao` |
