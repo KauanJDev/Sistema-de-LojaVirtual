@@ -124,7 +124,7 @@ def buscar_produto(id_produto: int):
     return erro_404(crud.buscar_produto(id_produto), "Produto não encontrado.")
 
 @app.patch("/produtos/{id_produto}", response_model=ProdutoRead, tags=["Produtos"],
-           summary="Atualiza só os campos enviados")
+           summary="Atualiza so os campos enviados")
 def atualizar_produto(id_produto: int, dados: ProdutoUpdate):
     return erro_404(crud.atualizar_produto(id_produto, dados), "Produto não encontrado.")
 
@@ -139,7 +139,7 @@ def reativar_produto(id_produto: int):
     erro_404(crud.reativar_produto(id_produto), "Produto não encontrado.")
     return crud.buscar_produto(id_produto)
 
-# CARACTERÍSTICAS DO PRODUTO
+# CARACTERISTICAS DO PRODUTO
 
 @app.post("/caracteristicas", status_code=201, tags=["Caracteristicas"])
 def criar_caracteristica(dados: CaracteristicaProdutoCreate):

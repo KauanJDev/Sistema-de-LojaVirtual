@@ -12,8 +12,8 @@ class PedidoCreate(BaseModel):
 
     @model_validator(mode="after")
     def sem_produto_repetido(self):
-        ids = [item.produto_id for item in self.itens]
-        if len(ids) != len(set(ids)):
+        indice = [item.produto_id for item in self.itens]
+        if len(indice) != len(set(indice)):
             raise ValueError("Não é permitido produtos repetidos no pedido")
         return self
 
