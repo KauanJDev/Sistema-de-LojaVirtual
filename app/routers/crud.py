@@ -229,15 +229,6 @@ def listar_produtos(busca=None, categoria_id=None, apenas_ativos=True,
 
     busca = busca.strip() if busca else None
  
-    parametros = (
-        apenas_ativos,
-        busca,
-        busca,
-        categoria_id,
-        categoria_id,
-        apenas_disponiveis,
-    )
- 
     with get_db_connection() as connection:
         with get_db_cursor(connection) as cursor:
             cursor.execute(sql, parametros)
