@@ -1,9 +1,9 @@
--- =====================================================================
+
 -- Status do pedido:
 --   AGUARDANDO_CONFIRMACAO, CONFIRMADO, ENVIADO, ENTREGUE, CANCELADO
 -- Tipos de movimentação de estoque:
 --   ENTRADA, SAIDA_VENDA, ESTORNO_CANCELAMENTO, AJUSTE
--- =====================================================================
+
 
 CREATE TABLE IF NOT EXISTS categorias (
     id SERIAL PRIMARY KEY,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS caracteristicas_produto (
 );
 
 -- ---------------------------------------------------------------------
--- ESTOQUE (1:1 com produtos)
+-- ESTOQUE
 -- ---------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS estoque (
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS clientes (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
-    cpf VARCHAR(14) UNIQUE,
+    cpf VARCHAR(14) UNIQUE NOT NULL,
     telefone VARCHAR(20),
     ativo BOOLEAN NOT NULL DEFAULT TRUE,
     criado_em TIMESTAMP NOT NULL DEFAULT NOW()
@@ -70,7 +70,6 @@ CREATE TABLE IF NOT EXISTS enderecos (
     ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
--- Cada cliente pode ter no máximo um endereço principal ativo
 CREATE UNIQUE INDEX IF NOT EXISTS ux_enderecos_principal
     ON enderecos (cliente_id)
     WHERE principal AND ativo;
@@ -82,7 +81,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_enderecos_principal
 CREATE TABLE IF NOT EXISTS pedidos (
     id SERIAL PRIMARY KEY,
     cliente_id INTEGER NOT NULL REFERENCES clientes(id),
-    endereco_id INTEGER REFERENCES enderecos(id),   -- apenas referência ao cadastro
+    endereco_id INTEGER REFERENCES enderecos(id),
     status VARCHAR(30) NOT NULL DEFAULT 'AGUARDANDO_CONFIRMACAO'
         CHECK (status IN ('AGUARDANDO_CONFIRMACAO', 'CONFIRMADO',
                           'ENVIADO', 'ENTREGUE', 'CANCELADO')),
@@ -94,7 +93,6 @@ CREATE TABLE IF NOT EXISTS pedidos (
     motivo_cancelamento VARCHAR(255),
     valor_total NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (valor_total >= 0),
 
-    -- Snapshot do endereço de entrega (copiado no momento do pedido)
     entrega_destinatario VARCHAR(100) NOT NULL,
     entrega_cep VARCHAR(9) NOT NULL,
     entrega_numero VARCHAR(10) NOT NULL,
@@ -103,7 +101,6 @@ CREATE TABLE IF NOT EXISTS pedidos (
     entrega_cidade VARCHAR(60) NOT NULL,
     entrega_estado VARCHAR(50) NOT NULL,
 
-    -- Vendas efetivadas precisam ter data de confirmação (usada nos relatórios)
     CONSTRAINT ck_pedidos_data_confirmacao CHECK (
         status NOT IN ('CONFIRMADO', 'ENVIADO', 'ENTREGUE')
         OR data_confirmacao IS NOT NULL
@@ -115,7 +112,7 @@ CREATE TABLE IF NOT EXISTS itens_pedido (
     pedido_id INTEGER NOT NULL REFERENCES pedidos(id),
     produto_id INTEGER NOT NULL REFERENCES produtos(id),
     quantidade INTEGER NOT NULL CHECK (quantidade > 0),
-    preco_unitario NUMERIC(10, 2) NOT NULL CHECK (preco_unitario >= 0),  -- preço congelado
+    preco_unitario NUMERIC(10, 2) NOT NULL CHECK (preco_unitario >= 0),
     UNIQUE (pedido_id, produto_id)
 );
 
@@ -135,14 +132,13 @@ CREATE TABLE IF NOT EXISTS historico_status_pedido (
 );
 
 -- ---------------------------------------------------------------------
--- MOVIMENTAÇÕES DE ESTOQUE (auditoria)
--- quantidade é sempre positiva, exceto em AJUSTE (positivo ou negativo)
+-- MOVIMENTAÇÕES DE ESTOQUE
 -- ---------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
     id SERIAL PRIMARY KEY,
     produto_id INTEGER NOT NULL REFERENCES produtos(id),
-    pedido_id INTEGER REFERENCES pedidos(id),   -- nulo em entradas e ajustes
+    pedido_id INTEGER REFERENCES pedidos(id),
     tipo VARCHAR(30) NOT NULL
         CHECK (tipo IN ('ENTRADA', 'SAIDA_VENDA', 'ESTORNO_CANCELAMENTO', 'AJUSTE')),
     quantidade INTEGER NOT NULL,
@@ -158,7 +154,7 @@ CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
 );
 
 -- ---------------------------------------------------------------------
--- ÍNDICES (chaves estrangeiras e filtros dos relatórios)
+-- ÍNDICES
 -- ---------------------------------------------------------------------
 
 CREATE INDEX IF NOT EXISTS idx_produtos_categoria
