@@ -301,7 +301,7 @@ def reativar_produto(id_produto):
             cursor.execute(sql, (id_produto,))
             return cursor.fetchone()
 
-# CARACTERÍSTICAS DO PRODUTO
+# CARACTERISTICAS DO PRODUTO
 
 def criar_caracteristica(dados):
     sql = """
@@ -344,4 +344,49 @@ def excluir_caracteristica(id_caracteristica):
             cursor.execute(sql, (id_caracteristica,))
             return cursor.fetchone()
 
-# VOU FAZER CRUD DE ENDEREÇOS AINDA...
+# ENDEREÇOS
+
+def criar_endereco(dados):
+    sql = """
+        INSERT INTO enderecos
+            (cliente_id, destinatario, cep, numero, complemento,
+             bairro, cidade, estado, principal)
+        VALUES
+            (%s, %s, %s, %s, %s, %s, %s, %s,
+             %s OR NOT EXISTS (SELECT 1 FROM enderecos 
+             WHERE cliente_id = %s AND ativo))
+        RETURNING *;
+    """
+
+    parametros = (
+        dados.cliente_id,
+        dados.destinatario.strip(),
+        dados.cep,
+        dados.numero.strip(),
+        dados.complemento,
+        dados.bairro.strip(),
+        dados.cidade.strip(),
+        dados.estado.strip(),
+        dados.principal,
+        dados.cliente_id,
+    )
+
+    with get_db_connection() as connection:
+        with get_db_cursor(connection) as cursor:
+            if dados.principal:
+                cursor.execute(dados.cliente_id)
+            cursor.execute(sql, parametros)
+            return cursor.fetchone()
+
+def listar_enderecos(id_cliente, apenas_ativos=True):
+    sql = (
+        "SELECT * FROM enderecos WHERE cliente_id = %s "
+        "AND (%s = FALSE OR ativo) ORDER BY principal DESC, id;"
+    )
+
+    parametros = [id_cliente, apenas_ativos]
+ 
+    with get_db_connection() as connection:
+        with get_db_cursor(connection) as cursor:
+            cursor.execute(sql, parametros)
+            return cursor.fetchall()
