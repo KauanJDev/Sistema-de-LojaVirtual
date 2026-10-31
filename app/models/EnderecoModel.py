@@ -11,7 +11,6 @@ class EnderecoCreate(BaseModel):
     estado: str = Field(min_length=1, max_length=50)
     principal: bool = False
 
-
 class EnderecoUpdate(BaseModel):
     destinatario: str | None = Field(default=None, min_length=1, max_length=100)
     cep: str | None = Field(default=None, min_length=8, max_length=9)
@@ -22,3 +21,16 @@ class EnderecoUpdate(BaseModel):
     estado: str | None = Field(default=None, min_length=1, max_length=50)
     principal: bool | None = None
     ativo: bool | None = None
+
+class EnderecoRead(BaseModel):
+    id: int
+    cliente_id: int
+    destinatario: str
+    cep: str
+    numero: str
+    complemento: str | None
+    bairro: str
+    cidade: str
+    estado: str
+    principal: bool
+    ativo: bool

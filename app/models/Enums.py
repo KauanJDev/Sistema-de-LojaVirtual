@@ -7,13 +7,11 @@ class StatusPedido(str, Enum):
     ENTREGUE = "ENTREGUE"
     CANCELADO = "CANCELADO"
 
-
 class TipoMovimentacao(str, Enum):
     ENTRADA = "ENTRADA"
     SAIDA_VENDA = "SAIDA_VENDA"
     ESTORNO_CANCELAMENTO = "ESTORNO_CANCELAMENTO"
     AJUSTE = "AJUSTE"
-
 
 # Vendas efetivadas (RN09): so elas entram no faturamento
 STATUS_VENDA_EFETIVADA = (
