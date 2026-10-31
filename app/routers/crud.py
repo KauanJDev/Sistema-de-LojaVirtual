@@ -384,9 +384,103 @@ def listar_enderecos(id_cliente, apenas_ativos=True):
         "AND (%s = FALSE OR ativo) ORDER BY principal DESC, id;"
     )
 
-    parametros = [id_cliente, apenas_ativos]
+    parametros = (
+        id_cliente,
+        apenas_ativos
+    )
  
     with get_db_connection() as connection:
         with get_db_cursor(connection) as cursor:
             cursor.execute(sql, parametros)
             return cursor.fetchall()
+
+def atualizar_endereco(id_endereco,dados):
+    sql = """
+        UPDATE enderecos
+        SET destinatario = COALESCE(%s, destinatario),
+            cep = COALESCE(%s, cep),
+            numero = COALESCE(%s, numero),
+            complemento = COALESCE(%s, complemento),
+            bairro = COALESCE(%s, bairro),
+            cidade = COALESCE(%s, cidade),
+            estado = COALESCE(%s, estado)
+        WHERE id = %s
+        RETURNING *;
+    """
+
+    parametros = (
+        dados.destinatario.strip() if dados.destinatario else None,
+        dados.cep,
+        dados.numero.strip() if dados.numero else None,
+        dados.complemento,
+        dados.bairro.strip() if dados.bairro else None,
+        dados.cidade.strip() if dados.cidade else None,
+        dados.estado.strip() if dados.estado else None,
+        id_endereco,
+    )
+    
+    with get_db_connection() as connection:
+        with get_db_cursor(connection) as cursor:
+            cursor.execute(sql, parametros)
+            return cursor.fetchone()
+
+def definir_endereco_principal(id_endereco):
+    sql_cliente = """
+        SELECT cliente_id
+        FROM enderecos
+        WHERE id = %s AND ativo;
+    """
+ 
+    sql_principal_false = """
+        UPDATE enderecos
+        SET principal = FALSE
+        WHERE cliente_id = %s AND principal;
+    """
+ 
+    sql_principal_true = """
+        UPDATE enderecos
+        SET principal = TRUE
+        WHERE id = %s
+        RETURNING *;
+    """
+
+    with get_db_connection() as connection:
+        with get_db_cursor(connection) as cursor:
+            cursor.execute(sql_cliente, (id_endereco,))
+            endereco = cursor.fetchone()
+
+            if endereco is None:
+                return None
+
+            cursor.execute(sql_principal_false, (endereco["cliente_id"],))
+            cursor.execute(sql_principal_true, (id_endereco,))
+            return cursor.fetchone()
+
+def desativar_endereco(id_endereco):
+    sql = """
+        UPDATE enderecos
+        SET ativo = FALSE,
+            principal = FALSE
+        WHERE id = %s
+        RETURNING *;
+    """
+
+    with get_db_connection() as connection:
+        with get_db_cursor(connection) as cursor:
+            cursor.execute(sql, (id_endereco,))
+            return cursor.fetchone()
+
+def reativar_endereco(id_endereco):
+    """Volta a ficar ativo, mas não principal (use definir_endereco_principal)."""
+    sql = """
+        UPDATE enderecos
+        SET ativo = TRUE
+        WHERE id = %s
+        RETURNING *;
+    """
+ 
+    with get_db_connection() as connection:
+        with get_db_cursor(connection) as cursor:
+            cursor.execute(sql, (id_endereco,))
+            return cursor.fetchone()
+         

@@ -6,6 +6,7 @@ from app.routers import crud
 from app.models.ClienteModel import ClienteCreate, ClienteRead, ClienteUpdate
 from app.models.CategoriaModel import CategoriaCreate
 from app.models.ProdutoModel import ProdutoCreate, ProdutoRead, ProdutoUpdate, CaracteristicaProdutoCreate
+from app.models.EnderecoModel import EnderecoCreate, EnderecoUpdate, EnderecoRead
 
 app = FastAPI(
     title="Loja Virtual",
@@ -13,30 +14,14 @@ app = FastAPI(
     version="0.0.1",
 )
 
-MENSAGENS_DUPLICIDADE = {
-    "clientes_email_key": "Ja existe um cliente com esse e-mail.",
-    "clientes_cpf_key": "Ja existe um cliente com esse CPF.",
-    "categorias_nome_key": "Ja existe uma categoria com esse nome.",
-    "caracteristicas_produto_id_nome_key": "Esse produto ja tem uma caracteristica com esse nome.",
-}
-
-MENSAGENS_REFERENCIA = {
-    "produtos_categoria_id_fkey": "Categoria não encontrada.",
-    "caracteristicas_produto_id_fkey": "Produto não encontrado.",
-}
-
 @app.exception_handler(errors.UniqueViolation)
 def tratar_duplicidade(request: Request, erro: errors.UniqueViolation):
-    mensagem = MENSAGENS_DUPLICIDADE.get(
-        erro.diag.constraint_name, "Ja existe um registro com esses dados."
-    )
+    mensagem = "Ja existe um registro com esses dados."
     return JSONResponse(status_code=409, content={"detail": mensagem})
 
 @app.exception_handler(errors.ForeignKeyViolation)
 def tratar_referencia(request: Request, erro: errors.ForeignKeyViolation):
-    mensagem = MENSAGENS_REFERENCIA.get(
-        erro.diag.constraint_name, "Um dos registros informados não existe."
-    )
+    mensagem = "Um dos registros informados não existe."
     return JSONResponse(status_code=400, content={"detail": mensagem})
 
 @app.exception_handler(errors.CheckViolation)
@@ -153,3 +138,36 @@ def listar_caracteristicas(id_produto: int):
 @app.delete("/caracteristicas/{id_caracteristica}", tags=["Caracteristicas"])
 def excluir_caracteristica(id_caracteristica: int):
     return erro_404(crud.excluir_caracteristica(id_caracteristica), "Caracteristica não encontrada.")
+
+# ENDEREÇO
+
+@app.post("/enderecos", response_model=EnderecoRead, status_code=201, tags=["Endereços"],
+          summary="Cadastra um endereço para o cliente")
+def criar_endereco(dados: EnderecoCreate):
+    return crud.criar_endereco(dados)
+ 
+@app.get("/clientes/{id_cliente}/enderecos", response_model=list[EnderecoRead],
+         tags=["Endereços"], summary="Lista os endereços do cliente")
+def listar_enderecos(id_cliente: int, apenas_ativos: bool = True):
+    erro_404(crud.buscar_cliente(id_cliente), "Cliente não encontrado.")
+    return crud.listar_enderecos(id_cliente, apenas_ativos)
+ 
+@app.patch("/enderecos/{id_endereco}", response_model=EnderecoRead, tags=["Endereços"],
+           summary="Atualiza so os campos enviados")
+def atualizar_endereco(id_endereco: int, dados: EnderecoUpdate):
+    return erro_404(crud.atualizar_endereco(id_endereco, dados), "Endereço não encontrado.")
+ 
+@app.post("/enderecos/{id_endereco}/principal", response_model=EnderecoRead, tags=["Endereços"],
+          summary="Define como o endereço principal do cliente")
+def definir_endereco_principal(id_endereco: int):
+    return erro_404(crud.definir_endereco_principal(id_endereco),
+                  "Endereço não encontrado ou não é o ativo.")
+ 
+@app.delete("/enderecos/{id_endereco}", response_model=EnderecoRead, tags=["Endereços"],
+            summary="Desativa o endereço")
+def desativar_endereco(id_endereco: int):
+    return erro_404(crud.desativar_endereco(id_endereco), "Endereço não encontrado.")
+ 
+@app.post("/enderecos/{id_endereco}/reativar", response_model=EnderecoRead, tags=["Endereos"])
+def reativar_endereco(id_endereco: int):
+    return erro_404(crud.reativar_endereco(id_endereco), "Endereço não encontrado.")
