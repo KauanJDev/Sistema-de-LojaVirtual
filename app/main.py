@@ -52,7 +52,6 @@ def verificar_db():
 def criar_cliente(dados: ClienteCreate):
     return crud.criar_cliente(dados)
 
-
 @app.get("/clientes", response_model=list[ClienteRead], tags=["Clientes"])
 def listar_clientes(
     busca: str | None = Query(default=None, description="Procura o nome e no email"),
