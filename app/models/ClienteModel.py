@@ -14,7 +14,7 @@ class ClienteUpdate(BaseModel):
     cpf: str = Field(default=None)
     ativo: bool | None = None
 
-class ClienteRead(BaseModel):
+class ClienteSaida(BaseModel):
     id: int
     nome: str
     email: str

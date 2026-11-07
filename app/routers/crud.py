@@ -24,22 +24,18 @@ def criar_cliente(dados):
             return cursor.fetchone()
  
 def listar_clientes(busca=None, apenas_ativos=True):
-
-    filtros = []
+    sql = """SELECT * FROM clientes WHERE 1 = 1"""
     parametros = []
 
-    busca = (busca or "").strip()
-
     if apenas_ativos:
-        filtros.append("ativo")
-    if busca:
-        filtros.append("(nome ILIKE %s OR email ILIKE %s)")
-        padrao = f"%{busca}%"
-        parametros += [padrao, padrao]
+        sql += " AND ativo"
 
-    sql = "SELECT * FROM clientes"
-    if filtros:
-        sql += " WHERE " + " AND ".join(filtros)
+    if busca:
+        texto = f"%{busca.strip()}%"
+        sql += " AND (nome ILIKE %s OR email ILIKE %s)"
+        parametros.append(texto)
+        parametros.append(texto)
+
     sql += " ORDER BY nome;"
 
     with get_db_connection() as connection:
@@ -60,14 +56,13 @@ def buscar_cliente(id_cliente):
             return cursor.fetchone()
 
 def atualizar_cliente(id_cliente, dados):
-    #COALESCE retorna o primeiro valor não nulo.
     sql = """
         UPDATE clientes
-        SET nome = COALESCE(%s, nome),
-            email = COALESCE(%s, email),
-            cpf = COALESCE(%s, cpf),
-            telefone = COALESCE(%s, telefone),
-            ativo = COALESCE(%s, ativo)
+        SET nome = (%s, nome),
+            email = (%s, email),
+            cpf = (%s, cpf),
+            telefone = (%s, telefone),
+            ativo = (%s, ativo)
         WHERE id = %s
         RETURNING *;
     """
@@ -151,7 +146,7 @@ SELECT_PRODUTO = """
         p.descricao,
         p.preco_atual,
         p.ativo,
-        COALESCE(e.quantidade_disponivel, 0) AS quantidade_disponivel,
+        p.quantidade_disponivel,
         p.criado_em,
         p.atualizado_em
     FROM produtos p
@@ -205,7 +200,6 @@ def criar_produto(dados):
 
 def listar_produtos(busca=None, categoria_id=None, apenas_ativos=True,
                     apenas_disponiveis=False):
-
     filtros = []
     parametros = []
 
@@ -242,14 +236,13 @@ def buscar_produto(id_produto):
             return cursor.fetchone()
 
 def atualizar_produto(id_produto, dados):
-    #COALESCE retorna o primeiro valor não nulo.
     sql = """
         UPDATE produtos
-        SET categoria_id = COALESCE(%s, categoria_id),
-            nome = COALESCE(%s, nome),
-            descricao = COALESCE(%s, descricao),
-            preco_atual = COALESCE(%s, preco_atual),
-            ativo = COALESCE(%s, ativo),
+        SET categoria_id = (%s, categoria_id),
+            nome = (%s, nome),
+            descricao = (%s, descricao),
+            preco_atual = (%s, preco_atual),
+            ativo = (%s, ativo),
             atualizado_em = NOW()
         WHERE id = %s;
     """
@@ -381,7 +374,7 @@ def criar_endereco(dados):
 def listar_enderecos(id_cliente, apenas_ativos=True):
     sql = (
         "SELECT * FROM enderecos WHERE cliente_id = %s "
-        "AND (%s = FALSE OR ativo) ORDER BY principal DESC, id;"
+        "AND (%s = FALSE OR ativo) ORDER BY principal DESC;"
     )
 
     parametros = (
@@ -397,13 +390,13 @@ def listar_enderecos(id_cliente, apenas_ativos=True):
 def atualizar_endereco(id_endereco,dados):
     sql = """
         UPDATE enderecos
-        SET destinatario = COALESCE(%s, destinatario),
-            cep = COALESCE(%s, cep),
-            numero = COALESCE(%s, numero),
-            complemento = COALESCE(%s, complemento),
-            bairro = COALESCE(%s, bairro),
-            cidade = COALESCE(%s, cidade),
-            estado = COALESCE(%s, estado)
+        SET destinatario = (%s, destinatario),
+            cep = (%s, cep),
+            numero = (%s, numero),
+            complemento = (%s, complemento),
+            bairro = (%s, bairro),
+            cidade = (%s, cidade),
+            estado = (%s, estado)
         WHERE id = %s
         RETURNING *;
     """
@@ -430,13 +423,11 @@ def definir_endereco_principal(id_endereco):
         FROM enderecos
         WHERE id = %s AND ativo;
     """
- 
     sql_principal_false = """
         UPDATE enderecos
         SET principal = FALSE
         WHERE cliente_id = %s AND principal;
     """
- 
     sql_principal_true = """
         UPDATE enderecos
         SET principal = TRUE
@@ -448,10 +439,8 @@ def definir_endereco_principal(id_endereco):
         with get_db_cursor(connection) as cursor:
             cursor.execute(sql_cliente, (id_endereco,))
             endereco = cursor.fetchone()
-
             if endereco is None:
                 return None
-
             cursor.execute(sql_principal_false, (endereco["cliente_id"],))
             cursor.execute(sql_principal_true, (id_endereco,))
             return cursor.fetchone()
@@ -471,7 +460,6 @@ def desativar_endereco(id_endereco):
             return cursor.fetchone()
 
 def reativar_endereco(id_endereco):
-    """Volta a ficar ativo, mas não principal (use definir_endereco_principal)."""
     sql = """
         UPDATE enderecos
         SET ativo = TRUE

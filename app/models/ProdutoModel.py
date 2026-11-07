@@ -16,7 +16,7 @@ class ProdutoUpdate(BaseModel):
     preco_atual: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)
     ativo: bool | None = None
 
-class ProdutoRead(BaseModel):
+class ProdutoSaida(BaseModel):
     id: int
     categoria_id: int
     categoria: str

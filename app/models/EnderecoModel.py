@@ -22,7 +22,7 @@ class EnderecoUpdate(BaseModel):
     principal: bool | None = None
     ativo: bool | None = None
 
-class EnderecoRead(BaseModel):
+class EnderecoSaida(BaseModel):
     id: int
     cliente_id: int
     destinatario: str
