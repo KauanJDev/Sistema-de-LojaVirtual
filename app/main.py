@@ -8,11 +8,15 @@ from app.models.CategoriaModel import CategoriaCreate
 from app.models.ProdutoModel import ProdutoCreate, ProdutoSaida, ProdutoUpdate, CaracteristicaProdutoCreate
 from app.models.EnderecoModel import EnderecoCreate, EnderecoSaida, EnderecoUpdate
 
+from app.routers.estoque import router as estoque_router
+
 app = FastAPI(
     title="Loja Virtual",
     description="Sistema de Vendas para Loja Virtual",
     version="0.1",
 )
+
+app.include_router(estoque_router)
 
 @app.exception_handler(errors.UniqueViolation)
 def tratar_duplicidade(request: Request, erro: errors.UniqueViolation):
