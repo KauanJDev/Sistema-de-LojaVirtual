@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query
 
-from services import crud
-from services.erro import erro_404
+from app.services import crud
+from app.services.erro import erro_404
 from app.models.EnderecoModel import EnderecoCreate, EnderecoSaida, EnderecoUpdate
 
 router = APIRouter(prefix="/enderecos", tags=["Enderecos"])

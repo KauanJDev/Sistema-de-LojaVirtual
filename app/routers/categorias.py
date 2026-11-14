@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from services import crud
+from app.services import crud
 from app.models.CategoriaModel import CategoriaCreate
 
 router = APIRouter(prefix="/categorias", tags=["Categorias"])

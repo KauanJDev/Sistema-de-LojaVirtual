@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from services import crud
+from app.services import crud
 
 router = APIRouter(tags=["Geral"])
 
