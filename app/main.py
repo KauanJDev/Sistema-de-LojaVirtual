@@ -2,13 +2,15 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from psycopg2 import OperationalError, errors
 
-from app.routers import crud
-from app.models.ClienteModel import ClienteCreate, ClienteSaida, ClienteUpdate
-from app.models.CategoriaModel import CategoriaCreate
-from app.models.ProdutoModel import ProdutoCreate, ProdutoSaida, ProdutoUpdate, CaracteristicaProdutoCreate
-from app.models.EnderecoModel import EnderecoCreate, EnderecoSaida, EnderecoUpdate
-
 from app.routers.estoque import router as estoque_router
+from app.routers import(
+    clientes,
+    produtos,
+    categorias,
+    caracteristicas,
+    enderecos,
+    verifica_db,
+)
 
 app = FastAPI(
     title="Loja Virtual",
@@ -17,6 +19,14 @@ app = FastAPI(
 )
 
 app.include_router(estoque_router)
+app.include_router(clientes.router)
+app.include_router(produtos.router)
+app.include_router(categorias.router)
+app.include_router(caracteristicas.router)
+app.include_router(caracteristicas.router_do_produto)
+app.include_router(enderecos.router)
+app.include_router(enderecos.router_do_cliente)
+app.include_router(verifica_db.router)
 
 @app.exception_handler(errors.UniqueViolation)
 def tratar_duplicidade(request: Request, erro: errors.UniqueViolation):
@@ -38,130 +48,4 @@ def tratar_banco_fora(request: Request, erro: OperationalError):
     mensagem = "Não foi possivel conectar ao banco de dados"
     return JSONResponse(status_code=503, content={"detail": mensagem})
 
-def erro_404(registro, mensagem):
-    if registro is None:
-        raise HTTPException(status_code=404, detail=mensagem)
-    return registro
 
-@app.get("/verificar-banco", tags=["Geral"], summary="pra ver se o banco ta funcionando")
-def verificar_db():
-    with crud.get_db_connection() as connection:
-        with crud.get_db_cursor(connection) as cursor:
-            cursor.execute("SELECT 1 AS ok;")
-            return {"api": "ok", "banco": "ok" if cursor.fetchone()["ok"] == 1 else "erro"}
-
-# CLIENTES
-
-@app.post("/clientes", response_model=ClienteSaida, status_code=201, tags=["Clientes"])
-def criar_cliente(dados: ClienteCreate):
-    return crud.criar_cliente(dados)
-
-@app.get("/clientes", response_model=list[ClienteSaida], tags=["Clientes"])
-def listar_clientes(
-    busca: str | None = Query(default=None, description="Procura pelo nome ou email"),
-    apenas_ativos: bool = True,
-):
-    return crud.listar_clientes(busca, apenas_ativos)
-
-@app.get("/clientes/{id_cliente}", response_model=ClienteSaida, tags=["Clientes"])
-def buscar_cliente(id_cliente: int):
-    return erro_404(crud.buscar_cliente(id_cliente), "Cliente não encontrado")
-
-@app.patch("/clientes/{id_cliente}", response_model=ClienteSaida, tags=["Clientes"])
-def atualizar_cliente(id_cliente: int, dados: ClienteUpdate):
-    return erro_404(crud.atualizar_cliente(id_cliente, dados), "Cliente não encontrado")
-
-@app.delete("/clientes/{id_cliente}", response_model=ClienteSaida, tags=["Clientes"],
-            summary="Desativar cliente")
-def desativar_cliente(id_cliente: int):
-    return erro_404(crud.desativar_cliente(id_cliente), "Cliente não encontrado")
-
-@app.post("/clientes/{id_cliente}/reativar", response_model=ClienteSaida, tags=["Clientes"])
-def reativar_cliente(id_cliente: int):
-    return erro_404(crud.reativar_cliente(id_cliente), "Cliente não encontrado")
-
-# CATEGORIAS
-
-@app.post("/categorias", status_code=201, tags=["Categorias"])
-def criar_categoria(dados: CategoriaCreate):
-    return crud.criar_categoria(dados)
-
-@app.get("/categorias", tags=["Categorias"])
-def listar_categorias(apenas_ativas: bool = True):
-    return crud.listar_categorias(apenas_ativas)
-
-# PRODUTOS
-
-@app.post("/produtos", response_model=ProdutoSaida, status_code=201, tags=["Produtos"])
-def criar_produto(dados: ProdutoCreate):
-    return crud.criar_produto(dados)
-
-@app.get("/produtos", response_model=list[ProdutoSaida], tags=["Produtos"])
-def listar_produtos(
-    busca: str | None = Query(default=None, description="Procura pelo nome"),
-    categoria_id: int | None = None,
-    apenas_ativos: bool = True,
-    apenas_disponiveis: bool = False,
-):
-    return crud.listar_produtos(busca, categoria_id, apenas_ativos, apenas_disponiveis)
-
-@app.get("/produtos/{id_produto}", response_model=ProdutoSaida, tags=["Produtos"])
-def buscar_produto(id_produto: int):
-    return erro_404(crud.buscar_produto(id_produto), "Produto não encontrado")
-
-@app.patch("/produtos/{id_produto}", response_model=ProdutoSaida, tags=["Produtos"])
-def atualizar_produto(id_produto: int, dados: ProdutoUpdate):
-    return erro_404(crud.atualizar_produto(id_produto, dados), "Produto não encontrado")
-
-@app.delete("/produtos/{id_produto}", response_model=ProdutoSaida, tags=["Produtos"],
-            summary="Desativar produtos")
-def desativar_produto(id_produto: int):
-    erro_404(crud.desativar_produto(id_produto), "Produto não encontrado")
-    return crud.buscar_produto(id_produto)
-
-@app.post("/produtos/{id_produto}/reativar", response_model=ProdutoSaida, tags=["Produtos"])
-def reativar_produto(id_produto: int):
-    erro_404(crud.reativar_produto(id_produto), "Produto não encontrado")
-    return crud.buscar_produto(id_produto)
-
-# CARACTERISTICAS DO PRODUTO
-
-@app.post("/caracteristicas", status_code=201, tags=["Caracteristicas"])
-def criar_caracteristica(dados: CaracteristicaProdutoCreate):
-    return crud.criar_caracteristica(dados)
-
-@app.get("/produtos/{id_produto}/caracteristicas", tags=["Caracteristicas"])
-def listar_caracteristicas(id_produto: int):
-    erro_404(crud.buscar_produto(id_produto), "Produto não encontrado")
-    return crud.listar_caracteristicas(id_produto)
-
-@app.delete("/caracteristicas/{id_caracteristica}", tags=["Caracteristicas"])
-def excluir_caracteristica(id_caracteristica: int):
-    return erro_404(crud.excluir_caracteristica(id_caracteristica), "Caracteristica não encontrada")
-
-# ENDERECO
-
-@app.post("/enderecos", response_model=EnderecoSaida, status_code=201, tags=["Enderecos"])
-def criar_endereco(dados: EnderecoCreate):
-    return crud.criar_endereco(dados)
- 
-@app.get("/clientes/{id_cliente}/enderecos", response_model=list[EnderecoSaida], tags=["Enderecos"])
-def listar_enderecos(id_cliente: int, apenas_ativos: bool = True):
-    erro_404(crud.buscar_cliente(id_cliente), "Cliente não encontrado")
-    return crud.listar_enderecos(id_cliente, apenas_ativos)
- 
-@app.patch("/enderecos/{id_endereco}", response_model=EnderecoSaida, tags=["Enderecos"])
-def atualizar_endereco(id_endereco: int, dados: EnderecoUpdate):
-    return erro_404(crud.atualizar_endereco(id_endereco, dados), "Endereco não encontrado")
- 
-@app.post("/enderecos/{id_endereco}/principal", response_model=EnderecoSaida, tags=["Enderecos"])
-def definir_endereco_principal(id_endereco: int):
-    return erro_404(crud.definir_endereco_principal(id_endereco), "Endereco não encontrado ou não é o ativo")
- 
-@app.delete("/enderecos/{id_endereco}", response_model=EnderecoSaida, tags=["Enderecos"])
-def desativar_endereco(id_endereco: int):
-    return erro_404(crud.desativar_endereco(id_endereco), "Endereco não encontrado")
- 
-@app.post("/enderecos/{id_endereco}/reativar", response_model=EnderecoSaida, tags=["Enderecos"])
-def reativar_endereco(id_endereco: int):
-    return erro_404(crud.reativar_endereco(id_endereco), "Endereco não encontrado")
