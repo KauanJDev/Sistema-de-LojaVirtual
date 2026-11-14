@@ -4,7 +4,21 @@ from db.db import get_db_connection, get_db_cursor
 
 router = APIRouter(prefix="/estoque", tags=["Estoque"])
 
+@router.get("{produto_id}/estoque", status_code=status.HTTP_200_OK)
+def visualizar_estoque():
+    sql = """
+        SELECT * FROM estoque
+    """
+    try:
+        with get_db_connection() as connection:
+            with get_db_cursor(connection) as cursor:
+                cursor.execute(sql)
 
+                return cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                detail=f"Não foi possível exibir estoque: {e}"
+        )
 @router.get("/{produto_id}/qtd_disponivel", status_code=status.HTTP_200_OK)
 def obter_quantidade_disponivel(produto_id: str):
     sql = """
@@ -84,25 +98,36 @@ def editar_estoque(produto_id: str, qtd_nova: str):
             )
 
 @router.get("/movimentações")
-def visualizar_movimentacoes(produto_id = '', tipo = ''):
+def visualizar_movimentacoes(produto_id: str | None = None, tipo: str | None = None):
     sql = """
         SELECT * FROM
         movimentacoes_estoque
     """
     parametros = []
 
-    if produto_id != '':
-         sql += """ WHERE produto_id == $s """
-    if tipo != '':
-         sql += """ WHERE tipo == $s """
+    if produto_id:
+         sql += """
+             WHERE produto_id = %s
+         """
+         parametros.append(produto_id)
+    if tipo:
+        if produto_id:
+           sql += """ AND """
+        else:
+           sql += """ WHERE """
+        sql += """ tipo = %s """
+        parametros.append(tipo.upper())
 
     try:
         with get_db_connection() as connection:
             with get_db_cursor(connection) as cursor:
-                cursor.execute(sql)
+                if parametros != []:
+                    cursor.execute(sql, parametros)
+                else:
+                    cursor.execute(sql)
 
                 return {"result" : cursor.fetchall(), "query" : sql}
     except Exception as e:
-        return HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao ler tabela: {e}"
         )
