@@ -146,7 +146,7 @@ SELECT_PRODUTO = """
         p.descricao,
         p.preco_atual,
         p.ativo,
-        p.quantidade_disponivel,
+        e.quantidade_disponivel,
         p.criado_em,
         p.atualizado_em
     FROM produtos p
