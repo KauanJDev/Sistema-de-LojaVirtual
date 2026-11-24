@@ -9,6 +9,7 @@ from app.routers import(
     categorias,
     caracteristicas,
     enderecos,
+    pedidos,
     verifica_db,
 )
 
@@ -26,6 +27,8 @@ app.include_router(caracteristicas.router)
 app.include_router(caracteristicas.router_do_produto)
 app.include_router(enderecos.router)
 app.include_router(enderecos.router_do_cliente)
+app.include_router(pedidos.router)
+app.include_router(pedidos.router_do_cliente)
 app.include_router(verifica_db.router)
 
 @app.exception_handler(errors.UniqueViolation)
