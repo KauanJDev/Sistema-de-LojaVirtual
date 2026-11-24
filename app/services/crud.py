@@ -477,7 +477,7 @@ def reativar_endereco(id_endereco):
 
 # AUXILIARES CRIAR PEDIDO
 
-def _validar_cliente_pedido(cursor, cliente_id: int):
+def validar_cliente_pedido(cursor, cliente_id: int):
     cursor.execute("SELECT id, ativo FROM clientes WHERE id = %s;", (cliente_id,))
     cliente = cursor.fetchone()
     
@@ -485,9 +485,9 @@ def _validar_cliente_pedido(cursor, cliente_id: int):
         raise HTTPException(status_code=404, detail="Cliente não encontrado.")
     
     if not cliente["ativo"]:
-        raise HTTPException(status_code=400, detail="Cliente inativo não pode realizar pedidos.")
+        raise HTTPException(status_code=400, detail="Cliente inativo.")
 
-def _validar_endereco_pedido(cursor, endereco_id: int, cliente_id: int):
+def validar_endereco_pedido(cursor, endereco_id: int, cliente_id: int):
     cursor.execute(
         "SELECT * FROM enderecos WHERE id = %s AND cliente_id = %s AND ativo;",
         (endereco_id, cliente_id),
@@ -496,11 +496,11 @@ def _validar_endereco_pedido(cursor, endereco_id: int, cliente_id: int):
     if endereco is None:
         raise HTTPException(
             status_code=400,
-            detail="Endereço inválido, inativo ou não pertence ao cliente informado.",
+            detail="Endereço inválido, inativo ou não pertence ao cliente.",
         )
     return endereco
 
-def _validar_e_calcular_itens(cursor, itens):
+def validar_e_calcular_itens(cursor, itens):
     itens_ordenados = sorted(itens, key=lambda x: x.produto_id)
     itens_validados = []
     valor_total = Decimal("0.00")
@@ -522,14 +522,14 @@ def _validar_e_calcular_itens(cursor, itens):
         if not produto["ativo"]:
             raise HTTPException(
                 status_code=400,
-                detail=f"Produto '{produto['nome']}' está inativo e não pode ser pedido.",
+                detail=f"Produto '{produto['nome']}' está inativo.",
             )
         if produto["quantidade_disponivel"] < item.quantidade:
             raise HTTPException(
                 status_code=409,
                 detail=(
-                    f"Estoque insuficiente para '{produto['nome']}'. "
-                    f"Disponível: {produto['quantidade_disponivel']}, solicitado: {item.quantidade}."
+                    f"Sem estoque de '{produto['nome']}'. "
+                    f"Disponível: {produto['quantidade_disponivel']}."
                 ),
             )
 
@@ -542,7 +542,7 @@ def _validar_e_calcular_itens(cursor, itens):
 
     return itens_validados, valor_total
 
-def _inserir_pedido_e_itens(cursor, cliente_id: int, endereco: dict, itens_validados: list, valor_total: Decimal) -> int:
+def inserir_pedido_e_itens(cursor, cliente_id: int, endereco: dict, itens_validados: list, valor_total: Decimal) -> int:
     cursor.execute(
         """
         INSERT INTO pedidos (
@@ -589,7 +589,7 @@ def _inserir_pedido_e_itens(cursor, cliente_id: int, endereco: dict, itens_valid
 
 # AUXILIARES ATUALIZAR STATUS
 
-def _buscar_itens_pedido(cursor, id_pedido: int):
+def buscar_itens_pedido(cursor, id_pedido: int):
     cursor.execute(
         """
         SELECT ip.produto_id, ip.quantidade, p.nome AS nome_produto
@@ -602,7 +602,7 @@ def _buscar_itens_pedido(cursor, id_pedido: int):
     )
     return cursor.fetchall()
 
-def _baixar_estoque_confirmacao(cursor, id_pedido: int, itens: list):
+def baixar_estoque_confirmacao(cursor, id_pedido: int, itens: list):
     for item in itens:
         cursor.execute(
             """
@@ -618,7 +618,7 @@ def _baixar_estoque_confirmacao(cursor, id_pedido: int, itens: list):
             raise HTTPException(
                 status_code=409,
                 detail=(
-                    f"Estoque insuficiente para confirmar '{item['nome_produto']}'. "
+                    f"Sem estoque de '{item['nome_produto']}'. "
                     f"Disponível: {est['quantidade_disponivel']}, necessário: {item['quantidade']}."
                 ),
             )
@@ -643,11 +643,11 @@ def _baixar_estoque_confirmacao(cursor, id_pedido: int, itens: list):
                 id_pedido,
                 TipoMovimentacao.SAIDA_VENDA.value,
                 item["quantidade"],
-                f"Baixa por confirmação do pedido #{id_pedido}",
+                f"Estoque baixado, pedido confirmado. #{id_pedido}",
             ),
         )
 
-def _estornar_estoque_cancelamento(cursor, id_pedido: int, itens: list):
+def estornar_estoque_cancelamento(cursor, id_pedido: int, itens: list):
     for item in itens:
         cursor.execute(
             """
@@ -669,16 +669,16 @@ def _estornar_estoque_cancelamento(cursor, id_pedido: int, itens: list):
                 id_pedido,
                 TipoMovimentacao.ESTORNO_CANCELAMENTO.value,
                 item["quantidade"],
-                f"Estorno por cancelamento do pedido #{id_pedido}",
+                f"Estorno de estoque, pedido cancelado. #{id_pedido}",
             ),
         )
 
-def _aplicar_transicao_pedido(cursor, id_pedido: int, status_atual: StatusPedido, dados):
+def aplicar_transicao_pedido(cursor, id_pedido: int, status_atual: StatusPedido, dados):
     novo_status = dados.status
-    itens = _buscar_itens_pedido(cursor, id_pedido)
+    itens = buscar_itens_pedido(cursor, id_pedido)
 
     if novo_status == StatusPedido.CONFIRMADO:
-        _baixar_estoque_confirmacao(cursor, id_pedido, itens)
+        baixar_estoque_confirmacao(cursor, id_pedido, itens)
         cursor.execute(
             "UPDATE pedidos SET status = %s, data_confirmacao = NOW() WHERE id = %s;",
             (novo_status.value, id_pedido),
@@ -698,7 +698,7 @@ def _aplicar_transicao_pedido(cursor, id_pedido: int, status_atual: StatusPedido
 
     elif novo_status == StatusPedido.CANCELADO:
         if status_atual == StatusPedido.CONFIRMADO:
-            _estornar_estoque_cancelamento(cursor, id_pedido, itens)
+            estornar_estoque_cancelamento(cursor, id_pedido, itens)
         cursor.execute(
             """
             UPDATE pedidos
@@ -710,7 +710,7 @@ def _aplicar_transicao_pedido(cursor, id_pedido: int, status_atual: StatusPedido
 
 # PEDIDOS
 
-def _montar_pedido_completo(cursor, id_pedido: int):
+def montar_pedido_completo(cursor, id_pedido: int):
     cursor.execute("SELECT * FROM pedidos WHERE id = %s;", (id_pedido,))
     pedido = cursor.fetchone()
     if pedido is None:
@@ -800,7 +800,7 @@ def listar_pedidos(
 def buscar_pedido(id_pedido: int):
     with get_db_connection() as connection:
         with get_db_cursor(connection) as cursor:
-            return _montar_pedido_completo(cursor, id_pedido)
+            return montar_pedido_completo(cursor, id_pedido)
 
 def listar_historico_pedido(id_pedido: int):
     with get_db_connection() as connection:
@@ -823,13 +823,13 @@ def listar_historico_pedido(id_pedido: int):
 def criar_pedido(dados):
     with get_db_connection() as connection:
         with get_db_cursor(connection) as cursor:
-            _validar_cliente_pedido(cursor, dados.cliente_id)
-            endereco = _validar_endereco_pedido(cursor, dados.endereco_id, dados.cliente_id)
-            itens_validados, valor_total = _validar_e_calcular_itens(cursor, dados.itens)
-            id_pedido = _inserir_pedido_e_itens(
+            validar_cliente_pedido(cursor, dados.cliente_id)
+            endereco = validar_endereco_pedido(cursor, dados.endereco_id, dados.cliente_id)
+            itens_validados, valor_total = validar_e_calcular_itens(cursor, dados.itens)
+            id_pedido = inserir_pedido_e_itens(
                 cursor, dados.cliente_id, endereco, itens_validados, valor_total
             )
-            return _montar_pedido_completo(cursor, id_pedido)
+            return montar_pedido_completo(cursor, id_pedido)
 
 def atualizar_status_pedido(id_pedido: int, dados):
     novo_status = dados.status
@@ -851,7 +851,7 @@ def atualizar_status_pedido(id_pedido: int, dados):
             if novo_status == StatusPedido.CANCELADO and not (dados.motivo_cancelamento or "").strip():
                 raise HTTPException(status_code=400, detail="O motivo do cancelamento é obrigatório.")
 
-            _aplicar_transicao_pedido(cursor, id_pedido, status_atual, dados)
+            aplicar_transicao_pedido(cursor, id_pedido, status_atual, dados)
 
             obs = dados.observacao or dados.motivo_cancelamento
             cursor.execute(
@@ -863,4 +863,4 @@ def atualizar_status_pedido(id_pedido: int, dados):
                 (id_pedido, status_atual.value, novo_status.value, obs),
             )
 
-            return _montar_pedido_completo(cursor, id_pedido)
+            return montar_pedido_completo(cursor, id_pedido)
