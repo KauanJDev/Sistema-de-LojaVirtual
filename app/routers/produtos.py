@@ -2,7 +2,7 @@ from fastapi import APIRouter, Query
 
 from app.services import crud
 from app.services.erro import erro_404
-from app.models.ProdutoModel import ProdutoCreate, ProdutoSaida, ProdutoUpdate
+from app.schemas.ProdutoModel import ProdutoCreate, ProdutoSaida, ProdutoUpdate
 
 router = APIRouter(prefix="/produtos", tags=["Produtos"])
 

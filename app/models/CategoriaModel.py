@@ -1,10 +1,10 @@
-from pydantic import BaseModel, Field
+from sqlalchemy import String, true
+from sqlalchemy.orm import Mapped, mapped_column
+from .Base import Base
 
-class CategoriaCreate(BaseModel):
-    nome: str = Field(min_length=1, max_length=100)
-    descricao: str | None = Field(default=None, max_length=255)
-
-class CategoriaUpdate(BaseModel):
-    nome: str | None = Field(default=None, min_length=1, max_length=100)
-    descricao: str | None = Field(default=None, max_length=255)
-    ativa: bool | None = None
+class Categoria(Base):
+    __tablename__ = "categorias"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nome: Mapped[str] = mapped_column(String(100), unique=True)
+    descricao: Mapped[str | None] = mapped_column(String(255))
+    ativa: Mapped[bool] = mapped_column(server_default=true())

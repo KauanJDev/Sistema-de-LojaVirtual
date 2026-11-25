@@ -1,18 +1,38 @@
-from typing import Literal
+from datetime import datetime
+from sqlalchemy import CheckConstraint, ForeignKey, Index, String, func
+from sqlalchemy.orm import Mapped, mapped_column
+from .Base import Base
 
-from pydantic import BaseModel, Field, model_validator
+class Estoque(Base):
+    __tablename__ = "estoque"
+    __table_args__ = (CheckConstraint("quantidade_disponivel >= 0"),)
 
+    produto_id: Mapped[int] = mapped_column(ForeignKey("produtos.id"), primary_key=True)
+    quantidade_disponivel: Mapped[int] = mapped_column(server_default="0")
+    atualizado_em: Mapped[datetime] = mapped_column(server_default=func.now())
 
-class MovimentacaoEstoqueCreate(BaseModel):
-    produto_id: int = Field(gt=0)
-    tipo: Literal["ENTRADA", "AJUSTE"]
-    quantidade: int
-    observacao: str | None = Field(default=None, max_length=255)
+class MovimentacaoEstoque(Base):
+    __tablename__ = "movimentacoes_estoque"
+    __table_args__ = (
+        CheckConstraint(
+            "tipo IN ('ENTRADA', 'SAIDA_VENDA', 'ESTORNO_CANCELAMENTO', 'AJUSTE')"
+        ),
+        CheckConstraint(
+            " quantidade <> 0 AND (tipo = 'AJUSTE' OR quantidade > 0) ",
+            name="check_mov_quantidade",
+        ),
+        CheckConstraint(
+            " tipo NOT IN ('SAIDA_VENDA', 'ESTORNO_CANCELAMENTO') OR pedido_id IS NOT NULL ",
+            name="check_mov_pedido",
+        ),
+        Index("index_mov_estoque_produto", "produto_id", "data_hora"),
+        Index("index_mov_estoque_pedido", "pedido_id"),
+    )
 
-    @model_validator(mode="after")
-    def validar_quantidade(self):
-        if self.quantidade == 0:
-            raise ValueError("A quantidade não pode ser zero.")
-        if self.tipo == "ENTRADA" and self.quantidade < 0:
-            raise ValueError("Uma entrada precisa ter quantidade positiva.")
-        return self
+    id: Mapped[int] = mapped_column(primary_key=True)
+    produto_id: Mapped[int] = mapped_column(ForeignKey("produtos.id"))
+    pedido_id: Mapped[int | None] = mapped_column(ForeignKey("pedidos.id"))
+    tipo: Mapped[str] = mapped_column(String(30))
+    quantidade: Mapped[int] = mapped_column()
+    data_hora: Mapped[datetime] = mapped_column(server_default=func.now())
+    observacao: Mapped[str | None] = mapped_column(String(255))

@@ -1,35 +1,42 @@
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, Field
+from .Base import Base
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    true,
+)
+from sqlalchemy.orm import Mapped, mapped_column
 
-class ProdutoCreate(BaseModel):
-    categoria_id: int = Field(gt=0)
-    nome: str = Field(min_length=1, max_length=100)
-    descricao: str | None = None
-    preco_atual: Decimal = Field(ge=0, max_digits=10, decimal_places=2)
-    quantidade_inicial: int = Field(default=0, ge=0)
+class Produto(Base):
+    __tablename__ = "produtos"
+    __table_args__ = (
+        CheckConstraint("preco_atual >= 0"),
+        Index("index_produtos_categoria", "categoria_id"),
+    )
 
-class ProdutoUpdate(BaseModel):
-    categoria_id: int | None = Field(default=None, gt=0)
-    nome: str | None = Field(default=None, min_length=1, max_length=100)
-    descricao: str | None = None
-    preco_atual: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)
-    ativo: bool | None = None
+    id: Mapped[int] = mapped_column(primary_key=True)
+    categoria_id: Mapped[int] = mapped_column(ForeignKey("categorias.id"))
+    nome: Mapped[str] = mapped_column(String(100))
+    descricao: Mapped[str | None] = mapped_column(Text)
+    preco_atual: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    ativo: Mapped[bool] = mapped_column(server_default=true())
+    criado_em: Mapped[datetime] = mapped_column(server_default=func.now())
+    atualizado_em: Mapped[datetime] = mapped_column(server_default=func.now())
 
-class ProdutoSaida(BaseModel):
-    id: int
-    categoria_id: int
-    categoria: str
-    nome: str
-    descricao: str | None
-    preco_atual: Decimal
-    ativo: bool
-    quantidade_disponivel: int
-    criado_em: datetime
-    atualizado_em: datetime
-    caracteristicas: dict[str, str] | None = None
+class CaracteristicaProduto(Base):
+    __tablename__ = "caracteristicas_produto"
+    __table_args__ = (UniqueConstraint("produto_id", "nome"),)
 
-class CaracteristicaProdutoCreate(BaseModel):
-    produto_id: int = Field(gt=0)
-    nome: str = Field(min_length=1, max_length=60)
-    valor: str = Field(min_length=1, max_length=255)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    produto_id: Mapped[int] = mapped_column(
+        ForeignKey("produtos.id", ondelete="CASCADE")
+    )
+    nome: Mapped[str] = mapped_column(String(60))
+    valor: Mapped[str] = mapped_column(String(255))
