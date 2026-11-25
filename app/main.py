@@ -46,6 +46,7 @@ async def tratar_validacao(request: Request, erro: RequestValidationError):
 
 @app.exception_handler(DBAPIError)
 async def tratar_banco(request: Request, erro: DBAPIError):
+    #usei IA pra pegar os codigos que o banco retorna
 
     codigo = getattr(erro.orig, "pgcode", None)
 
