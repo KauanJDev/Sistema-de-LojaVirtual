@@ -142,7 +142,7 @@ def listar_produtos(busca=None, categoria_id=None, apenas_ativos=True, apenas_di
 
     if apenas_ativos:
         consulta = consulta.where(Produto.ativo)
-    if busca.strip():
+    if busca and busca.strip():
         consulta = consulta.where(Produto.nome.ilike(f"%{busca.strip()}%"))
     if categoria_id is not None:
         consulta = consulta.where(Produto.categoria_id == categoria_id)
@@ -246,6 +246,9 @@ def alterar_endereco(id_endereco, valores, exigir_ativo=False):
         
         sessao.get(Cliente, cliente_id, with_for_update=True)
         endereco = sessao.get(Endereco, id_endereco)
+
+        if endereco is None:
+            return None
 
         if exigir_ativo and not endereco.ativo:
             return None

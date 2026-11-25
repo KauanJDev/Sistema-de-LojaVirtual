@@ -1,17 +1,18 @@
 from fastapi import APIRouter, Query
 from app.models.Enums import TipoMovimentacao
 from app.services import crud
+from app.services.erro import erro_404
 
 router = APIRouter(prefix="/estoque", tags=["Estoque"])
 
-@router.get("/{produto_id}/estoque", include_in_schema=False)
+@router.get("{produto_id}/estoque", include_in_schema=False)
 @router.get("")
 def visualizar_estoque():
     return crud.listar_estoque()
 
 @router.get("/{produto_id}/qtd_disponivel")
 def obter_quantidade_disponivel(produto_id: int):
-    return crud.quantidade_disponivel(produto_id)
+    return erro_404(crud.quantidade_disponivel(produto_id), "Estoque do produto nao encontrado")
 
 @router.patch("/{produto_id}/repor")
 def repor_estoque(produto_id: int, qtd_adicional: int = Query(gt=0)):
