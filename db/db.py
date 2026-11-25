@@ -1,9 +1,12 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import sessionmaker
 
-load_dotenv()
+env_path = str(Path(__file__).resolve().parent.parent / ".env")
+load_dotenv(env_path)
+
 url = URL.create(
     "postgresql+psycopg2",
     username=os.getenv("DB_USER"),
