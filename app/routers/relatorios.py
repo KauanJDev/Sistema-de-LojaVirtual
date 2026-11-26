@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter
 
-from app.services import crud
+from app.cruds import crud_relatorios as crud
 from app.services.erro import erro_404
 
 from app.models.Enums import StatusPedido

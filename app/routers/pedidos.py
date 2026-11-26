@@ -8,7 +8,8 @@ from app.schemas.PedidoModel import (
     PedidoSaida,
     PedidoStatusUpdate,
 )
-from app.services import crud, erro
+from app.cruds import crud_pedidos as crud
+from app.services import erro
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 router_do_cliente = APIRouter(prefix="/clientes", tags=["Pedidos"])

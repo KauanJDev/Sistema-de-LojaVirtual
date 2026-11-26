@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.services import crud
+from app.cruds import crud_caracteristicas_produto as crud
 from app.services.erro import erro_404
 from app.schemas.ProdutoModel import CaracteristicaProdutoCreate
 

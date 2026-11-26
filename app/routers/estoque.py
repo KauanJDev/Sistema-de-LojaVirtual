@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 from app.models.Enums import TipoMovimentacao
-from app.services import crud
+from app.cruds import crud_estoque as crud
 from app.services.erro import erro_404
 
 router = APIRouter(prefix="/estoque", tags=["Estoque"])

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query
 
-from app.services import crud
+from app.cruds import crud_enderecos as crud
+from app.cruds import crud_clientes as cliente_crud
 from app.services.erro import erro_404
 from app.schemas.EnderecoModel import EnderecoCreate, EnderecoSaida, EnderecoUpdate
 
@@ -29,5 +30,7 @@ def reativar_endereco(id_endereco: int):
 
 @router_do_cliente.get("/{id_cliente}/enderecos", response_model=list[EnderecoSaida])
 def listar_enderecos(id_cliente: int, apenas_ativos: bool = True):
-    erro_404(crud.buscar_cliente(id_cliente), "Cliente não encontrado")
+    cliente = cliente_crud.buscar_cliente(id_cliente)
+    erro_404(cliente, "Cliente nao encontrado")
+
     return crud.listar_enderecos(id_cliente, apenas_ativos)
