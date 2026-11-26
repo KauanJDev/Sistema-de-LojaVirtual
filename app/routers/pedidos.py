@@ -9,6 +9,7 @@ from app.schemas.PedidoModel import (
     PedidoStatusUpdate,
 )
 from app.cruds import crud_pedidos as crud
+from app.cruds.crud_clientes import buscar_cliente
 from app.services import erro
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
@@ -58,7 +59,7 @@ def listar_pedidos_do_cliente(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=100),
 ):
-    cliente = crud.buscar_cliente(id_cliente)
+    cliente = buscar_cliente(id_cliente)
     erro.erro_404(cliente, "Cliente não encontrado.")
 
     resultado = crud.listar_pedidos(

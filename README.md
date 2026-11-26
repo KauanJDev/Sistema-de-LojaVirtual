@@ -37,7 +37,7 @@ O sistema permite:
  ## Funcionalidades
 
  **Catálogo**
-- Cadastro, edição e desativação de categorias e produtos
+- Cadastro, edição e desativação de produtos
 - Mostrar caracteristicas dos produtos
 - Busca por nome, categoria e disponibilidade
 
@@ -61,7 +61,6 @@ O sistema permite:
 **Relatórios**
 - Vendas por período, por produto e por categoria
 - Ranking de produtos mais vendidos
-- Comparação entre períodos
 
 ## Regras de negócio
  

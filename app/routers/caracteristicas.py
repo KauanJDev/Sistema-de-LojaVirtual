@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.cruds import crud_caracteristicas_produto as crud
+from app.cruds.crud_produtos import buscar_produto
 from app.services.erro import erro_404
 from app.schemas.ProdutoModel import CaracteristicaProdutoCreate
 
@@ -17,5 +18,5 @@ def excluir_caracteristica(id_caracteristica: int):
 
 @router_do_produto.get("/{id_produto}/caracteristicas")
 def listar_caracteristicas(id_produto: int):
-    erro_404(crud.buscar_produto(id_produto), "Produto não encontrado")
+    erro_404(buscar_produto(id_produto), "Produto não encontrado")
     return crud.listar_caracteristicas(id_produto)

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter,Query
 
 from app.cruds import crud_relatorios as crud
 from app.services.erro import erro_404
@@ -20,10 +20,10 @@ router = APIRouter(prefix="/relatorios", tags=["Relatórios"])
 def relatorio_periodo(p_comeco: datetime, p_fim: datetime):
     return crud.relatorio_por_periodo(p_comeco, p_fim)
 
-@router.get("/filtro/produto/{id}")
+@router.get("/filtro/produto/{produto_id}")
 def relatorio_por_produto(produto_id: int):
     return crud.relatorio_por_produto(produto_id)
 
 @router.get("/ranking")
-def ranking_vendas(limit: int):
+def ranking_vendas(limit: int = Query(ge=0)):
     return crud.ranking_de_vendas(limit)

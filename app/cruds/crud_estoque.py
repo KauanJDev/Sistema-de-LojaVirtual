@@ -8,8 +8,11 @@ from app.cruds.funcoes_auxiliares import listar, executar_um
 from app.models.ProdutoModel import Produto
 from db.db import Sessao
 
-def listar_estoque():
-    return listar(select(Estoque.__table__).order_by(Estoque.produto_id))
+def listar_estoque(produto_id=None):
+    consulta = select(Estoque.__table__).order_by(Estoque.produto_id)
+    if produto_id is not None:
+        consulta = consulta.where(Estoque.produto_id == produto_id)
+    return listar(consulta)
 
 def quantidade_disponivel(produto_id):
     return executar_um(
@@ -26,7 +29,7 @@ def alterar_estoque(produto_id, quantidade, tipo):
             raise HTTPException(404, "Estoque nao encontrado.")
         
         entrada = tipo == TipoMovimentacao.ENTRADA
-        variacao = quantidade if entrada else -quantidade
+        variacao = quantidade if entrada else quantidade - estoque.quantidade_disponivel
 
         if variacao:
             estoque.quantidade_disponivel += variacao
