@@ -6,9 +6,10 @@ from app.services.erro import erro_404
 router = APIRouter(prefix="/estoque", tags=["Estoque"])
 
 @router.get("{produto_id}/estoque", include_in_schema=False)
-@router.get("")
-def visualizar_estoque():
-    return crud.listar_estoque()
+@router.get("/{produto_id}/estoque")
+def visualizar_estoque_do_produto(produto_id: int):
+    registros = crud.listar_estoque(produto_id)
+    return erro_404(registros or None, "Estoque do produto nao encontrado")
 
 @router.get("/{produto_id}/qtd_disponivel")
 def obter_quantidade_disponivel(produto_id: int):
