@@ -1,72 +1,85 @@
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, Field, model_validator
-from .Enums import StatusPedido
+from .Base import Base
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Numeric,
+    String,
+    UniqueConstraint,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column
 
-class ItemPedidoCreate(BaseModel):
-    produto_id: int = Field(gt=0)
-    quantidade: int = Field(gt=0)  # RN03
+class Pedido(Base):
+    __tablename__ = "pedidos"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('AGUARDANDO_CONFIRMACAO', 'CONFIRMADO', 'ENVIADO', 'ENTREGUE', 'CANCELADO')"
+        ),
+        CheckConstraint("valor_total >= 0"),
+        CheckConstraint(
+            " status NOT IN ('CONFIRMADO', 'ENVIADO', 'ENTREGUE') OR data_confirmacao IS NOT NULL ",
+            name="check_pedidos_data_confirmacao",
+        ),
+        Index("index_pedidos_cliente", "cliente_id"),
+        Index("index_pedidos_status_confirmacao", "status", "data_confirmacao"),
+    )
 
-class PedidoCreate(BaseModel):
-    cliente_id: int = Field(gt=0)
-    endereco_id: int = Field(gt=0)
-    itens: list[ItemPedidoCreate] = Field(min_length=1)  # RN04
+    id: Mapped[int] = mapped_column(primary_key=True)
+    cliente_id: Mapped[int] = mapped_column(ForeignKey("clientes.id"))
+    endereco_id: Mapped[int | None] = mapped_column(ForeignKey("enderecos.id"))
+    status: Mapped[str] = mapped_column(
+        String(30), server_default="AGUARDANDO_CONFIRMACAO"
+    )
+    data_pedido: Mapped[datetime] = mapped_column(server_default=func.now())
+    data_confirmacao: Mapped[datetime | None] = mapped_column()
+    data_envio: Mapped[datetime | None] = mapped_column()
+    data_entrega: Mapped[datetime | None] = mapped_column()
+    data_cancelamento: Mapped[datetime | None] = mapped_column()
+    motivo_cancelamento: Mapped[str | None] = mapped_column(String(255))
+    valor_total: Mapped[Decimal] = mapped_column(Numeric(10, 2), server_default="0")
+    entrega_destinatario: Mapped[str] = mapped_column(String(100))
+    entrega_cep: Mapped[str] = mapped_column(String(9))
+    entrega_numero: Mapped[str] = mapped_column(String(10))
+    entrega_complemento: Mapped[str | None] = mapped_column(String(60))
+    entrega_bairro: Mapped[str] = mapped_column(String(60))
+    entrega_cidade: Mapped[str] = mapped_column(String(60))
+    entrega_estado: Mapped[str] = mapped_column(String(50))
 
-    @model_validator(mode="after")
-    def sem_produto_repetido(self):
-        indice = [item.produto_id for item in self.itens]
-        if len(indice) != len(set(indice)):
-            raise ValueError("Não é permitido produtos repetidos no pedido")
-        return self
 
-class PedidoStatusUpdate(BaseModel):
-    status: StatusPedido
-    motivo_cancelamento: str | None = Field(default=None, max_length=255)
-    observacao: str | None = Field(default=None, max_length=255)
+class ItemPedido(Base):
+    __tablename__ = "itens_pedido"
+    __table_args__ = (
+        CheckConstraint("quantidade > 0"),
+        CheckConstraint("preco_unitario >= 0"),
+        UniqueConstraint("pedido_id", "produto_id"),
+        Index("idx_itens_pedido_produto", "produto_id"),
+    )
 
-class ItemPedidoSaida(BaseModel):
-    id: int
-    produto_id: int
-    nome_produto: str
-    quantidade: int
-    preco_unitario: Decimal
-    subtotal: Decimal
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pedido_id: Mapped[int] = mapped_column(ForeignKey("pedidos.id"))
+    produto_id: Mapped[int] = mapped_column(ForeignKey("produtos.id"))
+    quantidade: Mapped[int] = mapped_column()
+    preco_unitario: Mapped[Decimal] = mapped_column(Numeric(10, 2))
 
-class HistoricoStatusSaida(BaseModel):
-    id: int
-    pedido_id: int
-    status_anterior: StatusPedido | None
-    status_novo: StatusPedido
-    data_hora: datetime
-    observacao: str | None
 
-class PedidoSaida(BaseModel):
-    id: int
-    cliente_id: int
-    endereco_id: int | None
-    status: StatusPedido
-    data_pedido: datetime
-    data_confirmacao: datetime | None
-    data_envio: datetime | None
-    data_entrega: datetime | None
-    data_cancelamento: datetime | None
-    motivo_cancelamento: str | None
-    valor_total: Decimal
-    entrega_destinatario: str
-    entrega_cep: str
-    entrega_numero: str
-    entrega_complemento: str | None
-    entrega_bairro: str
-    entrega_cidade: str
-    entrega_estado: str
-    itens: list[ItemPedidoSaida]
+class HistoricoStatusPedido(Base):
+    __tablename__ = "historico_status_pedido"
+    __table_args__ = (
+        CheckConstraint(
+            "status_anterior IS NULL OR status_anterior IN ( 'AGUARDANDO_CONFIRMACAO', 'CONFIRMADO', 'ENVIADO', 'ENTREGUE', 'CANCELADO')"
+        ),
+        CheckConstraint(
+            "status_novo IN ( 'AGUARDANDO_CONFIRMACAO', 'CONFIRMADO', 'ENVIADO', 'ENTREGUE', 'CANCELADO')"
+        ),
+        Index("idx_historico_pedido", "pedido_id", "data_hora"),
+    )
 
-class PedidoResumoSaida(BaseModel):
-    id: int
-    cliente_id: int
-    cliente_nome: str
-    status: StatusPedido
-    data_pedido: datetime
-    data_confirmacao: datetime | None
-    valor_total: Decimal
-    total_itens: int
+    id: Mapped[int] = mapped_column(primary_key=True)
+    pedido_id: Mapped[int] = mapped_column(ForeignKey("pedidos.id"))
+    status_anterior: Mapped[str | None] = mapped_column(String(30))
+    status_novo: Mapped[str] = mapped_column(String(30))
+    data_hora: Mapped[datetime] = mapped_column(server_default=func.now())
+    observacao: Mapped[str | None] = mapped_column(String(255))

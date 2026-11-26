@@ -1,36 +1,28 @@
-from pydantic import BaseModel, Field
+from sqlalchemy import ForeignKey, Index, String, false, text, true
+from sqlalchemy.orm import Mapped, mapped_column
+from .Base import Base
 
-class EnderecoCreate(BaseModel):
-    cliente_id: int = Field(gt=0)
-    destinatario: str = Field(min_length=1, max_length=100)
-    cep: str = Field(min_length=8, max_length=9)
-    numero: str = Field(min_length=1, max_length=10)
-    complemento: str | None = Field(default=None, max_length=60)
-    bairro: str = Field(min_length=1, max_length=60)
-    cidade: str = Field(min_length=1, max_length=60)
-    estado: str = Field(min_length=1, max_length=50)
-    principal: bool = False
+class Endereco(Base):
+    __tablename__ = "enderecos"
+    __table_args__ = (
+        Index(
+            "unique_enderecos_principal",
+            "cliente_id",
+            unique=True,
+            postgresql_where=text("principal AND ativo"),
+            sqlite_where=text("principal AND ativo"),
+        ),
+        Index("index_enderecos_cliente", "cliente_id"),
+    )
 
-class EnderecoUpdate(BaseModel):
-    destinatario: str | None = Field(default=None, min_length=1, max_length=100)
-    cep: str | None = Field(default=None, min_length=8, max_length=9)
-    numero: str | None = Field(default=None, min_length=1, max_length=10)
-    complemento: str | None = Field(default=None, max_length=60)
-    bairro: str | None = Field(default=None, min_length=1, max_length=60)
-    cidade: str | None = Field(default=None, min_length=1, max_length=60)
-    estado: str | None = Field(default=None, min_length=1, max_length=50)
-    principal: bool | None = None
-    ativo: bool | None = None
-
-class EnderecoSaida(BaseModel):
-    id: int
-    cliente_id: int
-    destinatario: str
-    cep: str
-    numero: str
-    complemento: str | None
-    bairro: str
-    cidade: str
-    estado: str
-    principal: bool
-    ativo: bool
+    id: Mapped[int] = mapped_column(primary_key=True)
+    cliente_id: Mapped[int] = mapped_column(ForeignKey("clientes.id"))
+    destinatario: Mapped[str] = mapped_column(String(100))
+    cep: Mapped[str] = mapped_column(String(9))
+    numero: Mapped[str] = mapped_column(String(10))
+    complemento: Mapped[str | None] = mapped_column(String(60))
+    bairro: Mapped[str] = mapped_column(String(60))
+    cidade: Mapped[str] = mapped_column(String(60))
+    estado: Mapped[str] = mapped_column(String(50))
+    principal: Mapped[bool] = mapped_column(server_default=false())
+    ativo: Mapped[bool] = mapped_column(server_default=true())

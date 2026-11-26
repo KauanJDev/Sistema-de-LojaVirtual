@@ -1,24 +1,14 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from sqlalchemy import String, func, true
+from sqlalchemy.orm import Mapped, mapped_column
+from .Base import Base
 
-class ClienteCreate(BaseModel):
-    nome: str = Field(min_length=1, max_length=100)
-    email: str = Field(max_length=150)
-    telefone: str | None = Field(default=None, max_length=20)
-    cpf: str = Field(default=None)
-
-class ClienteUpdate(BaseModel):
-    nome: str | None = Field(default=None, min_length=1, max_length=100)
-    email: str | None = Field(default=None, max_length=150)
-    telefone: str | None = Field(default=None, max_length=20)
-    cpf: str = Field(default=None)
-    ativo: bool | None = None
-
-class ClienteSaida(BaseModel):
-    id: int
-    nome: str
-    email: str
-    telefone: str | None
-    cpf: str
-    ativo: bool
-    criado_em: datetime
+class Cliente(Base):
+    __tablename__ = "clientes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nome: Mapped[str] = mapped_column(String(100))
+    email: Mapped[str] = mapped_column(String(150), unique=True)
+    cpf: Mapped[str] = mapped_column(String(14), unique=True)
+    telefone: Mapped[str | None] = mapped_column(String(20))
+    ativo: Mapped[bool] = mapped_column(server_default=true())
+    criado_em: Mapped[datetime] = mapped_column(server_default=func.now())

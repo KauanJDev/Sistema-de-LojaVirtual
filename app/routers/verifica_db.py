@@ -1,13 +1,12 @@
 from fastapi import APIRouter
-from app.services import crud
+from sqlalchemy import select
+from db.db import Sessao
 
 router = APIRouter(tags=["Geral"])
 
-@router.get("/verificar-banco", summary="pra ver se o banco ta funcionando")
+@router.get("/verificar-banco", summary="ver se o banco ta prestando")
 def verificar_db():
-    with crud.get_db_connection() as connection:
-        with crud.get_db_cursor(connection) as cursor:
-            cursor.execute("SELECT 1 AS ok;")
-            return {"api": "ok", "banco": "ok" if cursor.fetchone()["ok"] == 1 else "erro"}
+    with Sessao() as sessao:
+        return {"api": "ok", "banco": "ok" if sessao.scalar(select(1)) == 1 else "erro"}
 
         
