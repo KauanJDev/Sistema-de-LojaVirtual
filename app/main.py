@@ -12,6 +12,7 @@ from app.routers import(
     enderecos,
     pedidos,
     verifica_db,
+    relatorios,
 )
 
 app = FastAPI(
@@ -31,6 +32,7 @@ app.include_router(enderecos.router_do_cliente)
 app.include_router(pedidos.router)
 app.include_router(pedidos.router_do_cliente)
 app.include_router(verifica_db.router)
+app.include_router(relatorios.router)
 
 def resposta_erro(status, mensagem):
     return JSONResponse(status_code=status, content={"detail": mensagem})
