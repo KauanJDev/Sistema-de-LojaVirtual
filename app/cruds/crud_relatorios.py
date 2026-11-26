@@ -9,16 +9,21 @@ def relatorio_por_periodo(p_comeco, p_fim):
 
     filtros.append(Pedido.status != "AGUARDANDO_CONFIRMADO")
     filtros.append(Pedido.data_confirmacao <= p_fim)
+    filtros.append(Pedido.data_confirmacao >= p_comeco)
 
     consulta = (
-        select(func.count().label("vendas_durante_periodo")).select_from(Pedido).where(*filtros))
+        select(func.sum(ItemPedido.quantidade).label("vendas_periodo"))
+        .select_from(ItemPedido)
+        .join(Pedido, Pedido.id == ItemPedido.pedido_id)
+        .where(*filtros)
+    )
 
     with Sessao() as sessao:
         result = sessao.execute(consulta).mappings().all()
         return {
             "inicio_periodo" : p_comeco,
             "fim_periodo" : p_fim,
-            "produtos_vendidos" : result,
+            "itens" : result,
         }
 
 def relatorio_por_produto(produto_id):
@@ -28,7 +33,11 @@ def relatorio_por_produto(produto_id):
     filtros.append(ItemPedido.produto_id == produto_id)
 
     consulta = (
-        select(func.count().label("vendas_deste_produto")).select_from(Pedido).where(*filtros))
+        select(func.sum(ItemPedido.quantidade).label("vendas_deste_produto"))
+        .select_from(ItemPedido)
+        .join(Pedido, Pedido.id == ItemPedido.pedido_id)
+        .where(*filtros)
+    )
 
     with Sessao() as sessao:
         result = sessao.execute(consulta).mappings().all()
@@ -43,17 +52,12 @@ def ranking_de_vendas(limit: int):
 
     filtro.append(ItemPedido.produto_id == Produto.id)
 
-    sub = (
-        select(func.count(Pedido.id))
-        .select_from(Pedido)
-        .join(ItemPedido, ItemPedido.pedido_id == Pedido.id)
-        .where(*filtro)
-        .scalar_subquery()
-    )
     consulta = (
-        select(Produto.id, Produto.nome, sub.label("vendas"))
+        select(Produto.id, Produto.nome, func.sum(ItemPedido.quantidade).label("total_vendido"))
         .select_from(Produto)
-        .order_by(desc(Produto.preco_atual))
+        .join(ItemPedido, ItemPedido.produto_id == Produto.id)
+        .group_by(Produto.id, Produto.nome)
+        .order_by(desc(func.sum(ItemPedido.quantidade)))
         .limit(limit)
     )
 
